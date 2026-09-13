@@ -1,0 +1,46 @@
+version: "3.8"
+
+services:
+  # ─────────────────────────────────────────
+  # PostgreSQL — Document metadata & users
+  # ─────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: docuchain-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: docuchain
+      POSTGRES_USER: docuchain_user
+      POSTGRES_PASSWORD: docuchain_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/src/config/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - docuchain-net
+
+  # ─────────────────────────────────────────
+  # MeiliSearch — Full-text document search
+  # ─────────────────────────────────────────
+  meilisearch:
+    image: getmeili/meilisearch:v1.6
+    container_name: docuchain-meilisearch
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: "docuchain-meili-secret-key"
+      MEILI_ENV: development
+    ports:
+      - "7700:7700"
+    volumes:
+      - meili_data:/meili_data
+    networks:
+      - docuchain-net
+
+volumes:
+  postgres_data:
+  meili_data:
+
+networks:
+  docuchain-net:
+    driver: bridge

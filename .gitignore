@@ -1,0 +1,12 @@
+node_modules/
+.env
+uploads/
+fabric-network/crypto-config/
+fabric-network/channel-artifacts/
+fabric-network/*.tar.gz
+*.log
+dist/
+.DS_Store
+backend.zip
+build/
+fabric-samples/

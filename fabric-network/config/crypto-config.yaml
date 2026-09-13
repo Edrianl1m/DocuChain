@@ -1,0 +1,23 @@
+# ─────────────────────────────────────────────────────────────────
+# DocuChain — Crypto Material Configuration
+# Generates MSP certs for Orderer and Org1
+# Run: cryptogen generate --config=./crypto-config.yaml
+# ─────────────────────────────────────────────────────────────────
+
+OrdererOrgs:
+  - Name: Orderer
+    Domain: docuchain.local
+    EnableNodeOUs: true
+    Specs:
+      - Hostname: orderer
+
+PeerOrgs:
+  - Name: Org1
+    Domain: org1.docuchain.local
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+      SANS:
+        - localhost
+    Users:
+      Count: 1

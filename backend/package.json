@@ -1,0 +1,38 @@
+{
+  "name": "docuchain-backend",
+  "version": "1.0.0",
+  "description": "DocuChain REST API — blockchain document management",
+  "main": "src/app.js",
+  "scripts": {
+    "dev": "nodemon --ignore uploads/ --ignore backend/uploads/ src/app.js",
+    "start": "node src/app.js",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.14.4",
+    "@hyperledger/fabric-gateway": "^1.11.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-validator": "^7.0.1",
+    "fabric-ca-client": "^2.2.20",
+    "fabric-network": "^2.2.20",
+    "jsonwebtoken": "^9.0.2",
+    "mammoth": "^1.12.0",
+    "meilisearch": "^0.36.0",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "pdf-parse": "^2.4.5",
+    "pg": "^8.11.3",
+    "sequelize": "^6.35.1",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

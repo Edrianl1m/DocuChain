@@ -1,0 +1,51 @@
+version: "3.8"
+
+networks:
+  explorer-net:
+    driver: bridge
+  fabric-net:
+    external:
+      name: fabric-network_fabric-net
+
+services:
+  explorerdb:
+    image: ghcr.io/hyperledger-labs/explorer-db:1.1.8
+    container_name: explorerdb
+    hostname: explorerdb
+    environment:
+      DATABASE_DATABASE: fabricexplorer
+      DATABASE_USERNAME: hppoc
+      DATABASE_PASSWORD: password
+    volumes:
+      - explorerdb_data:/var/lib/postgresql/data
+    networks:
+      - explorer-net
+
+  explorer:
+    image: ghcr.io/hyperledger-labs/explorer:1.1.8
+    container_name: explorer
+    hostname: explorer
+    environment:
+      DATABASE_HOST: explorerdb
+      DATABASE_DATABASE: fabricexplorer
+      DATABASE_USERNAME: hppoc
+      DATABASE_PASSWORD: password
+      LOG_LEVEL_APP: debug
+      LOG_LEVEL_DB: debug
+      LOG_LEVEL_CONSOLE: info
+      LOG_CONSOLE_STDOUT: "true"
+      DISCOVERY_AS_LOCALHOST: "false"
+    volumes:
+      - ./config/network.json:/opt/explorer/app/platform/fabric/config.json
+      - ./config:/opt/explorer/app/platform/fabric/connection-profile
+      - ../fabric-network/crypto-config:/tmp/crypto
+    ports:
+      - "8080:8080"
+    depends_on:
+      - explorerdb
+    networks:
+      - explorer-net
+      - fabric-net
+
+volumes:
+  explorerdb_data:
