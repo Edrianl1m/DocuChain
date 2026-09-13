@@ -223,7 +223,7 @@ export default function UserManagement() {
                           onClick={() => handleToggle(user)}
                           style={{
                             background: user.isActive ? 'var(--yellow-bg)' : 'var(--green-bg)',
-                            border: `1px solid ${user.isActive ? '#3a2e0d' : '#1a4a2a'}`,
+                            border: `1px solid ${user.isActive ? 'var(--status-warning-border)' : 'var(--status-verified-border)'}`,
                             color: user.isActive ? 'var(--yellow)' : 'var(--green)',
                             borderRadius: '4px', padding: '4px 10px',
                             fontSize: '11px', cursor: 'pointer',
@@ -269,7 +269,7 @@ export default function UserManagement() {
                         <button
                           onClick={() => handleDelete(user)}
                           style={{
-                            background: 'var(--red-bg)', border: '1px solid #3a1515',
+                            background: 'var(--red-bg)', border: '1px solid var(--status-tampered-border)',
                             color: 'var(--red)', borderRadius: '4px',
                             padding: '4px 10px', fontSize: '11px', cursor: 'pointer',
                           }}

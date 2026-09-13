@@ -44,7 +44,7 @@ export default function Login() {
             width: '56px', height: '56px', borderRadius: '14px',
             background: 'var(--accent2)', margin: '0 auto 1rem',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '28px', border: '1px solid #3a6aaf',
+            fontSize: '28px', border: '1px solid var(--brand-border)',
           }}>⛓</div>
           <h1 style={{ fontSize: '24px', fontWeight: '600', color: 'var(--text)', marginBottom: '4px' }}>DocuChain</h1>
           <p style={{ color: 'var(--text2)', fontSize: '13px', fontFamily: 'IBM Plex Mono, monospace' }}>Blockchain Document Management</p>
@@ -55,7 +55,7 @@ export default function Login() {
           <form onSubmit={handleSubmit}>
             {error && (
               <div style={{
-                background: 'var(--red-bg)', border: '1px solid #3a1515',
+                background: 'var(--red-bg)', border: '1px solid var(--status-tampered-border)',
                 color: 'var(--red)', padding: '10px 14px', borderRadius: 'var(--radius)',
                 fontSize: '13px', marginBottom: '1.25rem',
               }}>{error}</div>

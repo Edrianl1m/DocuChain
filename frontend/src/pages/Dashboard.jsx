@@ -90,7 +90,7 @@ export default function Dashboard() {
       {/* Tampered alert — admin only */}
       {isAdmin && tampered.length > 0 && (
         <div style={{
-          background: 'var(--red-bg)', border: '1px solid #3a1515',
+          background: 'var(--red-bg)', border: '1px solid var(--status-tampered-border)',
           borderRadius: 'var(--radius-lg)', padding: '1rem 1.25rem',
           marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '12px',
         }}>
@@ -202,7 +202,7 @@ export default function Dashboard() {
                           <button
                             onClick={() => handleDelete(doc.docId)}
                             style={{
-                              background: 'var(--red-bg)', border: '1px solid #3a1515',
+                              background: 'var(--red-bg)', border: '1px solid var(--status-tampered-border)',
                               color: 'var(--red)', borderRadius: '4px',
                               padding: '4px 10px', fontSize: '11px', cursor: 'pointer',
                             }}

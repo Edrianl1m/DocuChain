@@ -97,7 +97,7 @@ export default function Upload() {
           border: `2px dashed ${drag ? 'var(--accent)' : file ? 'var(--green)' : 'var(--border2)'}`,
           borderRadius: 'var(--radius-lg)', padding: '3rem 2rem',
           textAlign: 'center', cursor: 'pointer',
-          background: drag ? '#0d1a2d' : file ? 'var(--green-bg)' : 'var(--bg2)',
+          background: drag ? 'var(--brand-surface)' : file ? 'var(--green-bg)' : 'var(--bg2)',
           transition: 'all 0.15s', marginBottom: '1.5rem',
         }}
       >
@@ -142,7 +142,7 @@ export default function Upload() {
       </div>
 
       {/* Hashing info */}
-      <div style={{ background: '#0d1a2d', border: '1px solid #1a3050', borderRadius: 'var(--radius)', padding: '1rem 1.25rem', marginBottom: '1.5rem', fontSize: '12px', color: 'var(--text2)' }}>
+      <div style={{ background: 'var(--brand-surface)', border: '1px solid var(--brand-border)', borderRadius: 'var(--radius)', padding: '1rem 1.25rem', marginBottom: '1.5rem', fontSize: '12px', color: 'var(--text2)' }}>
         <span style={{ color: 'var(--accent)', fontWeight: '500' }}>ℹ Hashing: </span>
         DocuChain computes MD5, SHA-1, and SHA-256 on upload. The SHA-256 hash is stored on the Hyperledger Fabric ledger as the integrity proof.
       </div>

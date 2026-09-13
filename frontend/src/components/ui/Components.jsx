@@ -1,7 +1,7 @@
 // ── Stat card ─────────────────────────────────────────────────
 export function StatCard({ label, value, sub, color = 'var(--accent)' }) {
   return (
-    <div className="card" style={{ padding: '1.25rem' }}>
+    <div className="card stat-card" style={{ padding: '1.25rem', '--stat-color': color }}>
       <div style={{ fontSize: '11px', color: 'var(--text3)', fontFamily: 'IBM Plex Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>{label}</div>
       <div style={{ fontSize: '28px', fontWeight: '600', color, lineHeight: 1 }}>{value}</div>
       {sub && <div style={{ fontSize: '12px', color: 'var(--text2)', marginTop: '6px' }}>{sub}</div>}
@@ -74,10 +74,10 @@ export function PageHeader({ title, sub, action }) {
 // ── Alert ──────────────────────────────────────────────────────
 export function Alert({ type = 'info', children }) {
   const styles = {
-    info:    { bg: '#0d1a2d', border: '#1a3050', color: 'var(--accent)' },
-    success: { bg: 'var(--green-bg)', border: '#1a4a2a', color: 'var(--green)' },
-    error:   { bg: 'var(--red-bg)', border: '#3a1515', color: 'var(--red)' },
-    warning: { bg: 'var(--yellow-bg)', border: '#3a2e0d', color: 'var(--yellow)' },
+    info:    { bg: 'var(--brand-surface)', border: 'var(--brand-border)', color: 'var(--accent)' },
+    success: { bg: 'var(--green-bg)', border: 'var(--status-verified-border)', color: 'var(--green)' },
+    error:   { bg: 'var(--red-bg)', border: 'var(--status-tampered-border)', color: 'var(--red)' },
+    warning: { bg: 'var(--yellow-bg)', border: 'var(--status-warning-border)', color: 'var(--yellow)' },
   }
   const s = styles[type]
   return (

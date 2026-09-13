@@ -16,9 +16,9 @@ function PrivateRoute({ children }) {
 
 function Layout({ children }) {
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
+    <div className="app-shell">
       <Sidebar />
-      <main style={{ flex: 1, padding: '2rem 2.5rem', overflowY: 'auto', maxWidth: '960px' }}>
+      <main className="app-content">
         {children}
       </main>
     </div>

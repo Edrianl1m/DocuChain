@@ -133,7 +133,7 @@ export default function Verify() {
         <div className="animate-in">
           <div className="card" style={{
             marginBottom: '1rem',
-            borderColor: result.isIntact ? '#1a4a2a' : '#3a1515',
+            borderColor: result.isIntact ? 'var(--status-verified-border)' : 'var(--status-tampered-border)',
             background: result.isIntact ? 'var(--green-bg)' : 'var(--red-bg)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '1.25rem' }}>
@@ -149,7 +149,7 @@ export default function Verify() {
                 </div>
               </div>
             </div>
-            <hr style={{ borderColor: result.isIntact ? '#1a4a2a' : '#3a1515', margin: '1rem 0' }} />
+            <hr style={{ borderColor: result.isIntact ? 'var(--status-verified-border)' : 'var(--status-tampered-border)', margin: '1rem 0' }} />
             <HashRow label="Stored hash (ledger)" value={result.storedHash} />
             <HashRow label="Current hash (computed now)" value={result.providedHash} />
             <div style={{ fontSize: '11px', color: 'var(--text3)', fontFamily: 'IBM Plex Mono, monospace', marginTop: '10px' }}>

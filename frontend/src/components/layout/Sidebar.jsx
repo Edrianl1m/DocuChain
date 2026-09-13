@@ -55,81 +55,45 @@ export default function Sidebar() {
   }
 
   return (
-    <aside style={{
-      width: '220px', minHeight: '100vh',
-      background: 'var(--bg2)',
-      borderRight: '1px solid var(--border)',
-      display: 'flex', flexDirection: 'column',
-      flexShrink: 0,
-    }}>
+    <aside className="sidebar">
       {/* Logo */}
-      <div style={{ padding: '1.5rem 1.25rem', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            width: '32px', height: '32px', borderRadius: '8px',
-            background: 'var(--accent2)', display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-            fontSize: '16px', flexShrink: 0,
-          }}>⛓</div>
-          <div>
-            <div style={{ fontWeight: '600', fontSize: '15px', color: 'var(--text)' }}>DocuChain</div>
-            <div style={{ fontSize: '10px', color: 'var(--text3)', fontFamily: 'IBM Plex Mono, monospace' }}>v1.0 · LAN</div>
+      <div className="sidebar-brand">
+        <div className="sidebar-brand-mark">◈</div>
+        <div className="sidebar-brand-copy">
+            <div className="sidebar-brand-name">DNSC</div>
+            <div className="sidebar-brand-subtitle">DocuChain System</div>
           </div>
-        </div>
       </div>
 
       {/* Nav */}
-      <nav style={{ flex: 1, padding: '1rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+      <nav className="sidebar-nav">
         {NAV.filter(n => !n.adminOnly || isAdmin).map(n => {
           const active = pathname === n.to
           return (
-            <Link key={n.to} to={n.to} style={{
-              display: 'flex', alignItems: 'center', gap: '10px',
-              padding: '9px 12px', borderRadius: 'var(--radius)',
-              color: active ? 'var(--text)' : 'var(--text2)',
-              background: active ? 'var(--bg4)' : 'transparent',
-              borderLeft: active ? '2px solid var(--accent)' : '2px solid transparent',
-              fontSize: '13.5px', fontWeight: active ? '500' : '400',
-              transition: 'all 0.15s', textDecoration: 'none',
-            }}
-            onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--bg3)' }}
-            onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
-            >
-              <span style={{ fontSize: '16px', width: '20px', textAlign: 'center', color: active ? 'var(--accent)' : 'var(--text3)' }}>{n.icon}</span>
-              {n.label}
+            <Link key={n.to} to={n.to} className={`sidebar-link${active ? ' is-active' : ''}`}>
+              <span className="sidebar-icon">{n.icon}</span>
+              <span className="sidebar-link-label">{n.label}</span>
             </Link>
           )
         })}
       </nav>
 
       {/* User info */}
-      <div style={{ padding: '1rem 0.75rem', borderTop: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-          <div style={{
-            width: '30px', height: '30px', borderRadius: '50%',
-            background: 'var(--bg4)', border: '1px solid var(--border2)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '12px', color: 'var(--accent)', fontWeight: '600', flexShrink: 0,
-          }}>
+      <div className="sidebar-footer">
+        <div className="sidebar-user">
+          <div className="sidebar-avatar">
             {(user.username || 'U')[0].toUpperCase()}
           </div>
           <div style={{ overflow: 'hidden', flex: 1 }}>
-            <div style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.username}</div>
-            <div style={{ fontSize: '10px', color: 'var(--text3)', fontFamily: 'IBM Plex Mono, monospace' }}>{user.role}</div>
+            <div className="sidebar-username">{user.username}</div>
+            <div className="sidebar-role">{user.role}</div>
           </div>
         </div>
 
         {/* Change password toggle */}
         <button
           onClick={() => { setShowPw(!showPw); setPwError(''); setPwSuccess('') }}
-          style={{
-            width: '100%', padding: '7px', background: 'transparent',
-            border: '1px solid var(--border)', color: 'var(--text2)',
-            borderRadius: 'var(--radius)', fontSize: '11px', cursor: 'pointer',
-            marginBottom: '6px', transition: 'all 0.15s',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text2)' }}
+          className="sidebar-action"
         >
           🔑 Change Password
         </button>
@@ -167,15 +131,7 @@ export default function Sidebar() {
         )}
 
         {/* Sign out */}
-        <button onClick={logout} style={{
-          width: '100%', padding: '8px', background: 'transparent',
-          border: '1px solid var(--border)', color: 'var(--text2)',
-          borderRadius: 'var(--radius)', fontSize: '12px', cursor: 'pointer',
-          transition: 'all 0.15s',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--red)'; e.currentTarget.style.color = 'var(--red)' }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text2)' }}
-        >
+        <button onClick={logout} className="sidebar-action">
           Sign out
         </button>
       </div>
