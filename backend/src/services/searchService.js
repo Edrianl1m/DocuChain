@@ -61,12 +61,13 @@ async function indexDocument({ docId, filename, content, department, docType, up
  */
 async function searchDocuments(query, options = {}) {
   const index = client.index(INDEX_NAME);
-  const { department, docType, tag, limit = 20, offset = 0 } = options;
+  const { department, docType, tag, uploader, limit = 20, offset = 0 } = options;
 
   const filters = [];
   if (department) filters.push(`department = "${department}"`);
   if (docType) filters.push(`docType = "${docType}"`);
   if (tag) filters.push(`tags = "${tag}"`);
+  if (uploader) filters.push(`uploader = "${String(uploader).replace(/"/g, '')}"`);
 
   return index.search(query || '', {
     limit,
@@ -76,6 +77,22 @@ async function searchDocuments(query, options = {}) {
     highlightPreTag: '<mark>',
     highlightPostTag: '</mark>',
   });
+}
+
+/**
+ * Ids of documents whose text (or file name / tags) contains every word of
+ * the query. Used by the public site, which then keeps only public,
+ * non-confidential documents, so nothing private can leak through here.
+ */
+async function searchTextIds(query, limit = 1000) {
+  const index = client.index(INDEX_NAME);
+  const result = await index.search(query, {
+    limit,
+    attributesToSearchOn: ['content', 'filename', 'tags'],
+    attributesToRetrieve: ['docId'],
+    matchingStrategy: 'all',
+  });
+  return result.hits.map(h => h.docId || h.id).filter(Boolean);
 }
 
 /**
@@ -94,4 +111,16 @@ async function updateIndex(docId, updates) {
   await index.updateDocuments([{ id: docId, docId, ...updates }]);
 }
 
-module.exports = { initSearch, indexDocument, searchDocuments, removeFromIndex, updateIndex };
+/**
+ * Tags currently stored in the index for a document ([] if none / not indexed)
+ */
+async function getIndexedTags(docId) {
+  try {
+    const doc = await client.index(INDEX_NAME).getDocument(docId, { fields: ['tags'] });
+    return Array.isArray(doc.tags) ? doc.tags : [];
+  } catch {
+    return [];
+  }
+}
+
+module.exports = { initSearch, indexDocument, searchDocuments, searchTextIds, removeFromIndex, updateIndex, getIndexedTags };

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { login } from '../services/api'
 
 export default function Login() {
@@ -18,7 +18,11 @@ export default function Login() {
       localStorage.setItem('user', JSON.stringify(res.data.user))
       navigate('/')
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed. Check your credentials.')
+      const status = err.response?.status
+      if (status === 401) setError('Incorrect username or password.')
+      else if (status === 429) setError('Too many login attempts. Please wait a few minutes and try again.')
+      else if (!err.response) setError('Cannot reach the server. Check your connection and try again.')
+      else setError(err.response?.data?.error || 'Login failed. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -40,13 +44,9 @@ export default function Login() {
       <div className="animate-in" style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: '380px' }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <div style={{
-            width: '56px', height: '56px', borderRadius: '14px',
-            background: 'var(--accent2)', margin: '0 auto 1rem',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '28px', border: '1px solid var(--brand-border)',
-          }}>⛓</div>
-          <h1 style={{ fontSize: '24px', fontWeight: '600', color: 'var(--text)', marginBottom: '4px' }}>DocuChain</h1>
+          <h1 style={{ margin: '0 0 0.75rem' }}>
+            <img src="/logo.png" alt="DocuChain" style={{ width: '150px', height: 'auto', display: 'block', margin: '0 auto' }} />
+          </h1>
           <p style={{ color: 'var(--text2)', fontSize: '13px', fontFamily: 'IBM Plex Mono, monospace' }}>Blockchain Document Management</p>
         </div>
 
@@ -88,14 +88,12 @@ export default function Login() {
             </button>
           </form>
 
-          <hr className="divider" />
-          <div style={{ fontSize: '12px', color: 'var(--text3)', fontFamily: 'IBM Plex Mono, monospace' }}>
-            <div>admin / admin123</div>
-            <div>user1 / user123</div>
-          </div>
         </div>
 
-        <p style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '12px', color: 'var(--text3)' }}>
+        <p style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '13px' }}>
+          <Link to="/" style={{ color: 'var(--accent)' }}>← Back to public resolutions</Link>
+        </p>
+        <p style={{ textAlign: 'center', marginTop: '0.5rem', fontSize: '12px', color: 'var(--text3)' }}>
           DocuChain · DNSC Institute of Computing
         </p>
       </div>

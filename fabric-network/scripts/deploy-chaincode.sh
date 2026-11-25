@@ -9,15 +9,22 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FABRIC_DIR="$(dirname "$SCRIPT_DIR")"
 ROOT_DIR="$(dirname "$FABRIC_DIR")"
 CHAINCODE_DIR="$ROOT_DIR/chaincode/document"
-FABRIC_BIN="$HOME/fabric-samples/bin"
+# Fabric binaries: $FABRIC_BIN if set, else ~/fabric-samples/bin, else the copy in this repo
+if [ -z "$FABRIC_BIN" ]; then
+  if [ -d "$HOME/fabric-samples/bin" ]; then FABRIC_BIN="$HOME/fabric-samples/bin"
+  else FABRIC_BIN="$(dirname "$FABRIC_DIR")/fabric-samples/bin"; fi
+fi
 
 export PATH="$FABRIC_BIN:$PATH"
-export FABRIC_CFG_PATH="$HOME/Downloads/capstone/docuchain/fabric-samples/config"
+export FABRIC_CFG_PATH="$ROOT_DIR/fabric-samples/config"
 
 CHANNEL_NAME="docuchain"
 CHAINCODE_NAME="docuchain-cc"
-CHAINCODE_VERSION="1.0"
-CHAINCODE_SEQUENCE=1
+# Version label of this build. Each redeploy needs a NEW version (and sequence);
+# e.g. CC_VERSION=2.0 ./scripts/deploy-chaincode.sh
+CHAINCODE_VERSION="${CC_VERSION:-1.0}"
+# Sequence: CC_SEQUENCE if set, otherwise 1 for a first deploy, or the committed sequence + 1 (see below)
+CHAINCODE_SEQUENCE="${CC_SEQUENCE:-}"
 ORDERER_CA="$FABRIC_DIR/crypto-config/ordererOrganizations/docuchain.local/orderers/orderer.docuchain.local/msp/tlscacerts/tlsca.docuchain.local-cert.pem"
 PEER_TLS_ROOTCERT="$FABRIC_DIR/crypto-config/peerOrganizations/org1.docuchain.local/peers/peer0.org1.docuchain.local/tls/ca.crt"
 
@@ -32,6 +39,18 @@ echo "╔═══════════════════════�
 echo "║   DocuChain — Chaincode Deployment       ║"
 echo "╚══════════════════════════════════════════╝"
 echo ""
+
+# ── Work out the sequence number (upgrade keeps the ledger data) ──
+if [ -z "$CHAINCODE_SEQUENCE" ]; then
+  CURRENT_SEQ=$(peer lifecycle chaincode querycommitted --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME" 2>/dev/null | tr -d '\r' | grep -o 'Sequence: [0-9]*' | awk '{print $2}')
+  if [ -n "$CURRENT_SEQ" ]; then
+    CHAINCODE_SEQUENCE=$((CURRENT_SEQ + 1))
+    echo "Upgrading: committed sequence is $CURRENT_SEQ, deploying sequence $CHAINCODE_SEQUENCE (version $CHAINCODE_VERSION)"
+  else
+    CHAINCODE_SEQUENCE=1
+    echo "First deployment: sequence 1 (version $CHAINCODE_VERSION)"
+  fi
+fi
 
 # ── Step 1: Install node_modules ─────────────────────────────────
 echo "[1/5] Installing chaincode dependencies..."
@@ -54,7 +73,11 @@ peer lifecycle chaincode install "$CHAINCODE_NAME.tar.gz"
 echo "      ✓ Chaincode installed"
 
 # ── Step 4: Get package ID ───────────────────────────────────────
-PACKAGE_ID=$(peer lifecycle chaincode queryinstalled | grep "${CHAINCODE_NAME}_${CHAINCODE_VERSION}" | awk '{print $3}' | tr -d ',')
+PACKAGE_ID=$(peer lifecycle chaincode queryinstalled | tr -d '\r' | grep "Label: ${CHAINCODE_NAME}_${CHAINCODE_VERSION}$" | tail -1 | awk '{print $3}' | tr -d ',')
+if [ -z "$PACKAGE_ID" ]; then
+  echo "Could not find the installed package ${CHAINCODE_NAME}_${CHAINCODE_VERSION}." >&2
+  exit 1
+fi
 echo "      Package ID: $PACKAGE_ID"
 
 # ── Step 5: Approve and commit ───────────────────────────────────
@@ -89,6 +112,6 @@ echo ""
 echo "══════════════════════════════════════════════"
 echo " ✅  Chaincode '$CHAINCODE_NAME' deployed"
 echo "     Channel  : $CHANNEL_NAME"
-echo "     Version  : $CHAINCODE_VERSION"
+echo "     Version  : $CHAINCODE_VERSION (sequence $CHAINCODE_SEQUENCE)"
 echo "══════════════════════════════════════════════"
 echo ""

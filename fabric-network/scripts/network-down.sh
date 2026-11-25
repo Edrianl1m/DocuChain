@@ -7,7 +7,11 @@ FABRIC_DIR="$(dirname "$SCRIPT_DIR")"
 echo "Stopping DocuChain Fabric network..."
 
 cd "$FABRIC_DIR"
-docker-compose -f docker-compose-fabric.yml down --volumes --remove-orphans
+if command -v docker-compose >/dev/null 2>&1; then
+  docker-compose -f docker-compose-fabric.yml down --volumes --remove-orphans
+else
+  docker compose -f docker-compose-fabric.yml down --volumes --remove-orphans
+fi
 
 echo "Cleaning generated artifacts..."
 rm -rf "$FABRIC_DIR/crypto-config"

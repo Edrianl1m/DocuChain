@@ -10,3 +10,7 @@ dist/
 backend.zip
 build/
 fabric-samples/
+
+# Server backups (contain secrets)
+backups/
+.deploy-staging/

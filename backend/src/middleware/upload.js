@@ -30,7 +30,9 @@ const fileFilter = (req, file, cb) => {
   if (allowed.includes(ext)) {
     cb(null, true);
   } else {
-    cb(new Error(`File type ${ext} is not supported.`), false);
+    const err = new Error(`File type ${ext} is not supported.`);
+    err.status = 400;
+    cb(err, false);
   }
 };
 

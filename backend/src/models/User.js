@@ -49,6 +49,15 @@ User.beforeUpdate(async (user) => {
 User.seedDefaults = async () => {
   const count = await User.count();
   if (count === 0) {
+    // Online: only an admin is created, with the password from ADMIN_PASSWORD
+    if (process.env.NODE_ENV === 'production') {
+      if (!process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD.length < 10) {
+        throw new Error('Set ADMIN_PASSWORD (at least 10 characters) for the first admin account.');
+      }
+      await User.create({ username: 'admin', password: process.env.ADMIN_PASSWORD, role: 'admin' });
+      console.log('[DB] Admin account created from ADMIN_PASSWORD');
+      return;
+    }
     await User.create({ username: 'admin', password: 'admin123', role: 'admin' });
     await User.create({ username: 'user1', password: 'user123', role: 'user' });
     console.log('[DB] Default users seeded: admin / user1');

@@ -1,0 +1,116 @@
+# ─────────────────────────────────────────────────────────────────
+# DocuChain — Online deployment (one Linux server)
+#
+#   Internet ──443/80──▶ caddy (HTTPS + built React app)
+#                          └── /api ──▶ backend (Express)
+#                                         ├── postgres
+#                                         ├── meilisearch
+#                                         └── Fabric peer (fabric-network_fabric-net)
+#
+# Only Caddy publishes ports. Secrets come from the .env file next to this
+# file (copy .env.production.example). Start the Fabric network first:
+# deploy/setup-server.sh does everything in the right order.
+# ─────────────────────────────────────────────────────────────────
+
+name: docuchain
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: docuchain
+      POSTGRES_USER: docuchain_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docuchain_user -d docuchain"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [docuchain-net]
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.6
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?set MEILI_MASTER_KEY in .env}
+      MEILI_ENV: production
+      MEILI_NO_ANALYTICS: "true"
+    volumes:
+      - meili_data:/meili_data
+    networks: [docuchain-net]
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      meilisearch:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: docuchain
+      DB_USER: docuchain_user
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      MEILI_HOST: http://meilisearch:7700
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+      MEILI_INDEX: documents
+      UPLOAD_DIR: /app/uploads
+      MAX_FILE_SIZE_MB: ${MAX_FILE_SIZE_MB:-50}
+      FABRIC_CHANNEL: docuchain
+      FABRIC_CHAINCODE: docuchain-cc
+      FABRIC_MSP_ID: Org1MSP
+      # Reached over the Fabric Docker network, not a published port
+      FABRIC_PEER_ENDPOINT: peer0.org1.docuchain.local:7051
+      FABRIC_CRYPTO_PATH: ../fabric-network/crypto-config
+      FABRIC_ADMIN_CERT: peerOrganizations/org1.docuchain.local/users/Admin@org1.docuchain.local/msp/signcerts/Admin@org1.docuchain.local-cert.pem
+      FABRIC_ADMIN_KEY_PATH: peerOrganizations/org1.docuchain.local/users/Admin@org1.docuchain.local/msp/keystore
+      FABRIC_PEER_TLS_CERT: peerOrganizations/org1.docuchain.local/peers/peer0.org1.docuchain.local/tls/ca.crt
+      FRONTEND_URL: https://${DOMAIN:?set DOMAIN in .env}
+    volumes:
+      - uploads_data:/app/uploads              # stored document files
+      - filemap_data:/app/backend/uploads      # file-map.json (docId -> file)
+      - ./fabric-network/crypto-config:/app/fabric-network/crypto-config:ro
+    networks: [docuchain-net, fabric-net]
+
+  caddy:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on: [backend]
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env}
+      # Request size limit; keep a bit above MAX_FILE_SIZE_MB for form overhead
+      MAX_UPLOAD_MB: ${MAX_REQUEST_MB:-60}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [docuchain-net]
+
+volumes:
+  postgres_data:
+  meili_data:
+  uploads_data:
+  filemap_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  docuchain-net:
+  fabric-net:
+    external: true
+    name: fabric-network_fabric-net

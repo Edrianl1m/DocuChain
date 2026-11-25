@@ -8,7 +8,11 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FABRIC_DIR="$(dirname "$SCRIPT_DIR")"
 CONFIG_DIR="$FABRIC_DIR/config"
-FABRIC_BIN="$HOME/fabric-samples/bin"   # Adjust if installed elsewhere
+# Fabric binaries: $FABRIC_BIN if set, else ~/fabric-samples/bin, else the copy in this repo
+if [ -z "$FABRIC_BIN" ]; then
+  if [ -d "$HOME/fabric-samples/bin" ]; then FABRIC_BIN="$HOME/fabric-samples/bin"
+  else FABRIC_BIN="$(dirname "$FABRIC_DIR")/fabric-samples/bin"; fi
+fi
 
 export PATH="$FABRIC_BIN:$PATH"
 export FABRIC_CFG_PATH="$CONFIG_DIR"
@@ -45,7 +49,14 @@ echo "      ✓ Channel transaction created"
 # ── Step 4: Start Docker containers ──────────────────────────────
 echo "[3/3] Starting Fabric Docker containers..."
 cd "$FABRIC_DIR"
-docker-compose -f docker-compose-fabric.yml up -d
+# Optional extra compose file, e.g. the online server's deploy/fabric.prod.yml
+COMPOSE_FILES="-f docker-compose-fabric.yml"
+if [ -n "$FABRIC_COMPOSE_OVERRIDE" ]; then COMPOSE_FILES="$COMPOSE_FILES -f $FABRIC_COMPOSE_OVERRIDE"; fi
+if command -v docker-compose >/dev/null 2>&1; then
+  docker-compose $COMPOSE_FILES up -d
+else
+  docker compose $COMPOSE_FILES up -d
+fi
 echo "      ✓ Containers started"
 
 echo ""

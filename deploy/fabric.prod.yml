@@ -1,0 +1,26 @@
+# ─────────────────────────────────────────────────────────────────
+# DocuChain — Fabric settings for the online server
+# Used together with fabric-network/docker-compose-fabric.yml:
+#   FABRIC_COMPOSE_OVERRIDE=../deploy/fabric.prod.yml ./scripts/network-up.sh
+# Ports are only reachable from the server itself (Docker would otherwise
+# open them to the internet, bypassing the firewall), and the containers
+# come back by themselves after a reboot.
+# Needs Docker Compose v2.24.4 or newer for "!override".
+# ─────────────────────────────────────────────────────────────────
+
+services:
+  orderer.docuchain.local:
+    restart: unless-stopped
+    ports: !override
+      - "127.0.0.1:7050:7050"
+      - "127.0.0.1:7053:7053"
+
+  peer0.org1.docuchain.local:
+    restart: unless-stopped
+    ports: !override
+      - "127.0.0.1:7051:7051"
+
+  ca.org1.docuchain.local:
+    restart: unless-stopped
+    ports: !override
+      - "127.0.0.1:7054:7054"

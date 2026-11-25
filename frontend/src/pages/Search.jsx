@@ -1,15 +1,42 @@
 import { useState } from 'react'
-import { searchDocuments } from '../services/api'
+import { Link } from 'react-router-dom'
+import toast from 'react-hot-toast'
+import { searchDocuments, downloadDocument, triggerDownload, readBlobError } from '../services/api'
 import { PageHeader, Alert, EmptyState, Spinner } from '../components/ui/Components'
 
-const DEPARTMENTS = ['IT', 'HR', 'Finance', 'Academic', 'Admin', 'Legal', 'Research', 'General']
-const DOC_TYPES = ['Document', 'Contract', 'Report', 'Certificate', 'Invoice', 'Memo', 'Policy', 'Other']
+import { DOC_TYPE_GROUPS, OFFICE_GROUPS, GroupedOptions } from '../constants/tor'
 
 export default function Search() {
   const [query, setQuery] = useState('')
   const [department, setDepartment] = useState('')
   const [docType, setDocType] = useState('')
   const [tag, setTag] = useState('')
+  const [opening, setOpening] = useState(null)
+
+  // Same rules as the Dashboard: the server re-hashes the file against the
+  // blockchain first and refuses a tampered one (409).
+  async function openDoc(hit, { inline = false } = {}) {
+    setOpening(hit.docId)
+    const tab = inline ? window.open('', '_blank') : null
+    try {
+      const res = await downloadDocument(hit.docId, { inline })
+      if (inline) {
+        const url = URL.createObjectURL(res.data)
+        if (tab) tab.location.href = url
+        else window.open(url, '_blank')
+        setTimeout(() => URL.revokeObjectURL(url), 60000)
+      } else {
+        triggerDownload(res.data, hit.filename)
+      }
+    } catch (err) {
+      tab?.close()
+      const body = await readBlobError(err)
+      if (err.response?.status === 409 && body.tampered) toast.error('Tampered: this file is blocked. An administrator has been notified.', { duration: 6000 })
+      else toast.error(body.error || 'Could not open the file.')
+    } finally {
+      setOpening(null)
+    }
+  }
   const [results, setResults] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -79,17 +106,17 @@ export default function Search() {
         {/* Filters row */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '10px', color: 'var(--text3)', fontFamily: 'IBM Plex Mono, monospace', marginBottom: '5px', textTransform: 'uppercase' }}>Department</label>
+            <label style={{ display: 'block', fontSize: '10px', color: 'var(--text3)', fontFamily: 'IBM Plex Mono, monospace', marginBottom: '5px', textTransform: 'uppercase' }}>Office</label>
             <select value={department} onChange={e => setDepartment(e.target.value)}>
-              <option value="">All departments</option>
-              {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+              <option value="">All offices</option>
+              <GroupedOptions groups={OFFICE_GROUPS} />
             </select>
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '10px', color: 'var(--text3)', fontFamily: 'IBM Plex Mono, monospace', marginBottom: '5px', textTransform: 'uppercase' }}>Document Type</label>
             <select value={docType} onChange={e => setDocType(e.target.value)}>
               <option value="">All types</option>
-              {DOC_TYPES.map(d => <option key={d} value={d}>{d}</option>)}
+              <GroupedOptions groups={DOC_TYPE_GROUPS} />
             </select>
           </div>
           <div>
@@ -166,10 +193,17 @@ export default function Search() {
                     </div>
                   )}
 
-                  <div style={{ display: 'flex', gap: '16px', fontSize: '11px', color: 'var(--text3)', fontFamily: 'IBM Plex Mono, monospace' }}>
-                    <span>↑ {hit.uploader}</span>
-                    <span>{hit.registeredAt?.slice(0, 10)}</span>
-                    <span style={{ color: 'var(--text3)', fontSize: '10px' }}>{hit.docId}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: '16px', fontSize: '11px', color: 'var(--text3)', fontFamily: 'IBM Plex Mono, monospace' }}>
+                      <span>↑ {hit.uploader}</span>
+                      <span>{hit.registeredAt?.slice(0, 10)}</span>
+                      <span style={{ color: 'var(--text3)', fontSize: '10px' }}>{hit.docId}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button type="button" className="btn-primary" style={{ padding: '6px 14px', fontSize: '12px' }} disabled={opening === hit.docId} onClick={() => openDoc(hit, { inline: true })}>View</button>
+                      <button type="button" className="btn-ghost" style={{ padding: '6px 14px', fontSize: '12px' }} disabled={opening === hit.docId} onClick={() => openDoc(hit)}>Download</button>
+                      <Link to={`/documents/${hit.docId}`}><button type="button" className="btn-ghost" style={{ padding: '6px 14px', fontSize: '12px' }}>Details</button></Link>
+                    </div>
                   </div>
                 </div>
               ))}

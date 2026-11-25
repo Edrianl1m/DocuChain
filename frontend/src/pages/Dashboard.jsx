@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { getDocuments, healthCheck, getTamperedDocuments, downloadDocument, deleteDocument, triggerDownload } from '../services/api'
+import toast from 'react-hot-toast'
+import { getDocuments, getRecords, filingLabel, healthCheck, getTamperedDocuments, downloadDocument, deleteDocument, triggerDownload, readBlobError, TAMPER_REASON_LABELS } from '../services/api'
 import { StatCard, Spinner, PageHeader } from '../components/ui/Components'
+import { isResolution } from '../constants/tor'
 
 export default function Dashboard() {
   const [docs, setDocs] = useState([])
@@ -10,6 +12,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState(null)
   const [copied, setCopied] = useState(null)
+  const [filing, setFiling] = useState({}) // docId -> { recordYear, recordQuarter }
+  const [records, setRecords] = useState([])
 
   const user = JSON.parse(localStorage.getItem('user') || '{}')
   const isAdmin = user.role === 'admin'
@@ -17,11 +21,17 @@ export default function Dashboard() {
   useEffect(() => {
     async function load() {
       try {
-        const [docsRes, tamperedRes, healthRes] = await Promise.allSettled([
+        const [docsRes, tamperedRes, healthRes, recordsRes] = await Promise.allSettled([
           getDocuments(),
           getTamperedDocuments(),
           healthCheck(),
+          getRecords(),
         ])
+        if (recordsRes.status === 'fulfilled') {
+          const list = recordsRes.value.data.records || []
+          setRecords(list)
+          setFiling(Object.fromEntries(list.map(r => [r.docId, r])))
+        }
         if (docsRes.status === 'fulfilled') setDocs(docsRes.value.data.documents || [])
         if (tamperedRes.status === 'fulfilled') setTampered(tamperedRes.value.data.tampered || [])
         if (healthRes.status === 'fulfilled') setHealth(healthRes.value.data)
@@ -32,16 +42,49 @@ export default function Dashboard() {
     load()
   }, [])
 
-  async function handleDownload(doc) {
+  // The server re-hashes the file and checks it on the blockchain first.
+  // A tampered document is blocked (409); admins may fetch it to investigate.
+  async function handleDownload(doc, { inline = false } = {}) {
     setDownloading(doc.docId)
+    // Open the tab now so the browser doesn't block it as a pop-up
+    const tab = inline ? window.open('', '_blank') : null
     try {
-      const res = await downloadDocument(doc.docId)
-      triggerDownload(res.data, doc.filename)
+      let res
+      try {
+        res = await downloadDocument(doc.docId, { inline })
+      } catch (err) {
+        const body = await readBlobError(err)
+        if (err.response?.status === 409 && body.tampered) {
+          markTampered(doc.docId, body.reasons)
+          if (!(isAdmin && body.canOverride && window.confirm(`${body.error}\n\nThis file is blocked. Open it anyway for investigation? (This is logged.)`))) {
+            tab?.close()
+            toast.error(isAdmin ? 'Tampered — file blocked.' : 'Tampered — this file is blocked. An administrator has been notified.', { duration: 6000 })
+            return
+          }
+          res = await downloadDocument(doc.docId, { inline, override: true })
+        } else {
+          throw Object.assign(err, { body })
+        }
+      }
+      if (inline) {
+        const url = URL.createObjectURL(res.data)
+        if (tab) tab.location.href = url
+        else window.open(url, '_blank')
+        setTimeout(() => URL.revokeObjectURL(url), 60000)
+      } else {
+        triggerDownload(res.data, doc.filename)
+      }
     } catch (err) {
-      alert(err.response?.data?.error || 'Download failed.')
+      tab?.close()
+      toast.error(err.body?.error || err.response?.data?.error || 'Download failed.')
     } finally {
       setDownloading(null)
     }
+  }
+
+  function markTampered(docId, reasons = []) {
+    setDocs(list => list.map(d => d.docId === docId ? { ...d, tampered: true, tamperReasons: reasons } : d))
+    setTampered(list => list.some(d => d.docId === docId) ? list : [...list, { ...docs.find(d => d.docId === docId), tampered: true, tamperReasons: reasons }])
   }
 
   async function handleDelete(docId) {
@@ -105,6 +148,33 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Records by quarter (latest year with documents) */}
+      {records.length > 0 && (() => {
+        const year = Math.max(...records.map(r => r.recordYear || 0))
+        const inYear = records.filter(r => r.recordYear === year)
+        return (
+          <div className="card" style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h2 style={{ fontSize: '15px', fontWeight: '500' }}>Records filed in {year}</h2>
+              <Link to="/repository" style={{ fontSize: '12px', color: 'var(--accent)' }}>Open Repository →</Link>
+            </div>
+            <div className="dash-quarters">
+              {[1, 2, 3, 4].map(q => {
+                const docs = inYear.filter(r => r.recordQuarter === q)
+                const resolutions = docs.filter(r => isResolution(r.docType)).length
+                return (
+                  <Link key={q} to={`/repository?year=${year}&quarter=${q}`} className="dash-quarter">
+                    <b>Quarter {q}</b>
+                    <div>{docs.length}</div>
+                    <span>{docs.length ? `${resolutions} resolution${resolutions === 1 ? '' : 's'} · ${docs.length - resolutions} other` : 'Nothing filed'}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Documents table */}
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
@@ -125,7 +195,7 @@ export default function Dashboard() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  {['Filename', 'Department', 'Type', 'Uploader', 'Date', 'Status', 'Doc ID', 'Actions'].map(h => (
+                  {['Filename', 'Office', 'Type', 'Filed under', 'Uploader', 'Date', 'Status', 'Doc ID', 'Actions'].map(h => (
                     <th key={h} style={{
                       textAlign: 'left', padding: '8px 12px',
                       fontSize: '11px', color: 'var(--text3)',
@@ -143,21 +213,30 @@ export default function Dashboard() {
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
                     <td style={{ padding: '10px 12px', fontSize: '13px', color: 'var(--text)', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {doc.filename}
+                      <Link to={`/documents/${doc.docId}`} title="Details and version history" style={{ color: 'var(--text)', textDecoration: 'none', borderBottom: '1px dotted var(--text3)' }}>{doc.filename}</Link>
+                      {doc.versionHistory?.length > 1 && <span className="badge badge-purple" style={{ marginLeft: '6px', fontSize: '10px' }}>v{doc.versionHistory.length}</span>}
                     </td>
                     <td style={{ padding: '10px 12px' }}>
                       <span className="badge badge-blue">{doc.department}</span>
                     </td>
                     <td style={{ padding: '10px 12px', color: 'var(--text2)', fontSize: '12px' }}>{doc.docType}</td>
+                    <td style={{ padding: '10px 12px', fontSize: '12px', whiteSpace: 'nowrap' }}>
+                      {filing[doc.docId]
+                        ? <Link to={`/repository?year=${filing[doc.docId].recordYear}&quarter=${filing[doc.docId].recordQuarter}`} style={{ color: 'var(--brand-primary)', textDecoration: 'none' }}>{filingLabel(filing[doc.docId].recordYear, filing[doc.docId].recordQuarter)}</Link>
+                        : <span style={{ color: 'var(--text3)' }}>—</span>}
+                    </td>
                     <td style={{ padding: '10px 12px', color: 'var(--text2)', fontSize: '12px' }}>{doc.uploader}</td>
                     <td style={{ padding: '10px 12px', color: 'var(--text3)', fontSize: '11px', fontFamily: 'IBM Plex Mono, monospace', whiteSpace: 'nowrap' }}>
                       {doc.registeredAt?.slice(0, 10)}
                     </td>
                     <td style={{ padding: '10px 12px' }}>
                       {doc.tampered
-                        ? <span className="badge badge-red">TAMPERED</span>
+                        ? <span className="badge badge-red" title={(doc.tamperReasons || []).map(r => TAMPER_REASON_LABELS[r] || r).join(', ')}>⚠ TAMPERED</span>
                         : <span className="badge badge-green">INTACT</span>
                       }
+                      {doc.tampered && doc.tamperReasons?.length > 0 && (
+                        <div style={{ fontSize: '10px', color: 'var(--red)', marginTop: '3px' }}>{doc.tamperReasons.map(r => TAMPER_REASON_LABELS[r] || r).join(', ')}</div>
+                      )}
                     </td>
                     {/* Doc ID with copy button */}
                     <td style={{ padding: '10px 12px' }}>
@@ -185,6 +264,21 @@ export default function Dashboard() {
                         {/* Download: admin sees all, user sees own */}
                         {(isAdmin || doc.uploader === user.username) && (
                           <button
+                            onClick={() => handleDownload(doc, { inline: true })}
+                            disabled={downloading === doc.docId}
+                            title="Open in a new tab (integrity-checked first)"
+                            style={{
+                              background: 'var(--bg4)', border: '1px solid var(--border)',
+                              color: 'var(--text2)', borderRadius: '4px',
+                              padding: '4px 10px', fontSize: '11px', cursor: 'pointer',
+                              opacity: downloading === doc.docId ? 0.5 : 1,
+                            }}
+                          >
+                            View
+                          </button>
+                        )}
+                        {(isAdmin || doc.uploader === user.username) && (
+                          <button
                             onClick={() => handleDownload(doc)}
                             disabled={downloading === doc.docId}
                             style={{
@@ -196,6 +290,12 @@ export default function Dashboard() {
                           >
                             {downloading === doc.docId ? '...' : '↓ Download'}
                           </button>
+                        )}
+                        {(isAdmin || doc.uploader === user.username) && (
+                          <Link to={`/documents/${doc.docId}`} title="Details, version history and new version upload"
+                            style={{ background: 'var(--bg4)', border: '1px solid var(--border)', color: 'var(--text2)', borderRadius: '4px', padding: '4px 10px', fontSize: '11px', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                            Versions
+                          </Link>
                         )}
                         {/* Delete: admin only */}
                         {isAdmin && (

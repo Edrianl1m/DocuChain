@@ -95,3 +95,42 @@ Capstone project developed by students of the Institute of Computing, Davao del 
 ## License
 
 This project is developed as part of an academic capstone requirement at DNSC.
+
+## Blockchain Explorer
+
+Staff can open **Explorer** in the sidebar (`/explorer`) to browse the Fabric channel's blocks, newest first: block number, timestamp, action (REGISTER, VERIFY, UPDATE, DEACTIVATE), document SHA-256, previous hash and user. Click a block for its header hashes and transactions. **Validate Chain** recomputes every block hash and data hash and checks that each block points at the one before it.
+
+The explorer reads the ledger through the `qscc` system chaincode (read-only), using the same `.env` Fabric settings as the rest of the API. If the network is down the page shows "Blockchain network offline" instead of failing. Optional settings: `FABRIC_CONNECT_TIMEOUT_MS` (default 4000) and `EXPLORER_MAX_VALIDATE_BLOCKS` (default 5000).
+
+## Public Resolutions page
+
+`/public` is a public page with no login: search by title, resolution number or year, newest first, with a first-page PDF preview, a "Verified on blockchain" badge (block, transaction and shortened SHA-256), and View, Download and Verify buttons. `/public/verify` lets anyone check a copy against the ledger.
+
+- Upload has a **Publish on public page** switch (off by default) plus optional resolution number, date, title and summary.
+- The **Public Page** screen in the sidebar (`/publishing`) publishes, hides or edits existing documents.
+- Documents marked **Confidential** can never be published, listed, downloaded or verified publicly; the API enforces this.
+- Public views, downloads and verifications are recorded in the `public_access_logs` table (Audit Trail → Public access) and never submit ledger transactions. Public verification only evaluates `GetDocument`.
+- Publication settings live in the PostgreSQL table `document_publications`; Sequelize creates both tables on startup.
+
+
+## Starting Fabric on Windows
+
+The scripts run in **Git Bash** (comes with Git for Windows) and use the Windows binaries in `fabric-samples/bin`. Docker Desktop must be running.
+
+1. Once only: open Notepad as Administrator, open `C:\Windows\System32\drivers\etc\hosts` and add
+   `127.0.0.1 peer0.org1.docuchain.local orderer.docuchain.local`
+2. In Git Bash, from `fabric-network/`:
+   ```bash
+   ./scripts/network-down.sh      # fresh start: removes old containers, volumes and crypto
+   ./scripts/network-up.sh        # crypto, orderer, peer, CA, channel "docuchain"
+   ./scripts/deploy-chaincode.sh  # installs docuchain-cc
+   ```
+3. Restart the backend (`npm run dev` in `backend/`).
+
+To restart an existing network later without wiping it, start the containers again with `docker compose -f docker-compose-fabric.yml up -d` instead of running the scripts.
+
+The landing page `http://localhost:5173/` shows the public resolutions to visitors; signed-in staff land on their dashboard.
+
+## Online deployment
+
+To run DocuChain on a public domain (one Linux server with Docker and HTTPS), see [deploy/DEPLOY.md](deploy/DEPLOY.md).

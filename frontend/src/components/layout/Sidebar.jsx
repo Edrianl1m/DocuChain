@@ -1,14 +1,20 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { changeMyPassword } from '../../services/api'
+import { LayoutDashboard, Archive, Upload, ShieldCheck, Search, ScrollText, BarChart3, Blocks, Globe, Users } from 'lucide-react'
 
 const NAV = [
-  { to: '/',        icon: '◈', label: 'Dashboard'   },
-  { to: '/upload',  icon: '↑', label: 'Upload'      },
-  { to: '/verify',  icon: '◎', label: 'Verify'      },
-  { to: '/search',  icon: '⌕', label: 'Search'      },
-  { to: '/audit',   icon: '≡', label: 'Audit Trail' },
-  { to: '/users',   icon: '👤', label: 'Users', adminOnly: true },
+  // One line-icon set (lucide) so every item has the same size, weight and colour
+  { to: '/',           icon: LayoutDashboard, label: 'Dashboard'   },
+  { to: '/repository', icon: Archive,         label: 'Repository'  },
+  { to: '/upload',     icon: Upload,          label: 'Upload'      },
+  { to: '/verify',     icon: ShieldCheck,     label: 'Verify'      },
+  { to: '/search',     icon: Search,          label: 'Search'      },
+  { to: '/audit',      icon: ScrollText,      label: 'Audit Trail' },
+  { to: '/analytics',  icon: BarChart3,       label: 'Analytics', adminOnly: true },
+  { to: '/explorer',   icon: Blocks,          label: 'Explorer'    },
+  { to: '/publishing', icon: Globe,           label: 'Public Page' },
+  { to: '/users',      icon: Users,           label: 'Users', adminOnly: true },
 ]
 
 export default function Sidebar() {
@@ -58,7 +64,7 @@ export default function Sidebar() {
     <aside className="sidebar">
       {/* Logo */}
       <div className="sidebar-brand">
-        <div className="sidebar-brand-mark">◈</div>
+        <img src="/logo-mark.png" alt="DocuChain logo" style={{ width: '36px', height: '36px', objectFit: 'contain', flexShrink: 0 }} />
         <div className="sidebar-brand-copy">
             <div className="sidebar-brand-name">DNSC</div>
             <div className="sidebar-brand-subtitle">DocuChain System</div>
@@ -68,10 +74,10 @@ export default function Sidebar() {
       {/* Nav */}
       <nav className="sidebar-nav">
         {NAV.filter(n => !n.adminOnly || isAdmin).map(n => {
-          const active = pathname === n.to
+          const active = n.to === '/' ? pathname === '/' : pathname.startsWith(n.to)
           return (
             <Link key={n.to} to={n.to} className={`sidebar-link${active ? ' is-active' : ''}`}>
-              <span className="sidebar-icon">{n.icon}</span>
+              <span className="sidebar-icon"><n.icon size={18} strokeWidth={2} aria-hidden="true" /></span>
               <span className="sidebar-link-label">{n.label}</span>
             </Link>
           )
@@ -95,7 +101,7 @@ export default function Sidebar() {
           onClick={() => { setShowPw(!showPw); setPwError(''); setPwSuccess('') }}
           className="sidebar-action"
         >
-          🔑 Change Password
+          Change Password
         </button>
 
         {/* Change password form */}
